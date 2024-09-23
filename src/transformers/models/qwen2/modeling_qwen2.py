@@ -281,10 +281,12 @@ def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
     This is the equivalent of torch.repeat_interleave(x, dim=1, repeats=n_rep). The hidden states go from (batch,
     num_key_value_heads, seqlen, head_dim) to (batch, num_attention_heads, seqlen, head_dim)
     """
-    batch, num_key_value_heads, slen, head_dim = hidden_states.shape
-    if n_rep == 1:
+    batch, num_key_value_heads, slen, head_dim = hidden_states.shape # 获取 hidden_states 的形状
+    if n_rep == 1:  # 如果 n_rep 为 1，则不需要重复，直接返回 hidden_states
         return hidden_states
+    # 扩展 hidden_states 以重复 n_rep 次
     hidden_states = hidden_states[:, :, None, :, :].expand(batch, num_key_value_heads, n_rep, slen, head_dim)
+    # 重新调整 hidden_states 的形状以适应 GQA 的要求
     return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
 
@@ -711,6 +713,7 @@ class Qwen2DecoderLayer(nn.Module):
 
         # Fully Connected
         residual = hidden_states
+        # 此处的 post_attention_layernorm 与上面的 input_layernorm 用的都是 Qwen2RMSNorm
         hidden_states = self.post_attention_layernorm(hidden_states)
         hidden_states = self.mlp(hidden_states)
         hidden_states = residual + hidden_states
@@ -895,6 +898,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
+        # 参数初始化：根据配置文件初始化 output_attentions、output_hidden_states 和 use_cache。
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
@@ -903,11 +907,13 @@ class Qwen2Model(Qwen2PreTrainedModel):
 
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
 
+        # 输入验证：确保 input_ids 和 inputs_embeds 不能同时为 None。
         if (input_ids is None) ^ (inputs_embeds is not None):
             raise ValueError(
                 "You cannot specify both input_ids and inputs_embeds at the same time, and must specify either one"
             )
 
+        # 梯度检查点：如果启用了梯度检查点并且在训练模式下，禁用 use_cache。
         if self.gradient_checkpointing and self.training:
             if use_cache:
                 logger.warning_once(
@@ -915,6 +921,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
                 )
                 use_cache = False
 
+        # 缓存处理：如果使用缓存且 past_key_values 不是 Cache 实例，转换为 DynamicCache。
         use_legacy_cache = False
         if use_cache and not isinstance(past_key_values, Cache) and not self.training:
             use_legacy_cache = True
@@ -924,9 +931,11 @@ class Qwen2Model(Qwen2PreTrainedModel):
                 "Please use an appropriate `Cache` class (https://huggingface.co/docs/transformers/internal/generation_utils#transformers.Cache)"
             )
 
+        # 嵌入处理：如果 inputs_embeds 为 None，使用 input_ids 生成嵌入。
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input_ids)
 
+        # 位置索引处理：如果 cache_position 为 None，根据 past_key_values 计算。
         if cache_position is None:
             past_seen_tokens = past_key_values.get_seq_length() if past_key_values is not None else 0
             cache_position = torch.arange(
@@ -935,24 +944,29 @@ class Qwen2Model(Qwen2PreTrainedModel):
         if position_ids is None:
             position_ids = cache_position.unsqueeze(0)
 
+        # 因果掩码：更新因果掩码。
         causal_mask = self._update_causal_mask(
             attention_mask, inputs_embeds, cache_position, past_key_values, output_attentions
         )
 
         hidden_states = inputs_embeds
 
+        # 位置嵌入：生成位置嵌入。
         # create position embeddings to be shared across the decoder layers
         position_embeddings = self.rotary_emb(hidden_states, position_ids)
 
+        # 解码层：遍历所有解码层，执行前向传播。
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
         all_self_attns = () if output_attentions else None
         next_decoder_cache = None
 
         for decoder_layer in self.layers:
+            # 将所有的 hidden_states 保存成 tuple。
             if output_hidden_states:
                 all_hidden_states += (hidden_states,)
 
+            # 将 hidden_states 传入解码层，执行前向传播。
             if self.gradient_checkpointing and self.training:
                 layer_outputs = self._gradient_checkpointing_func(
                     decoder_layer.__call__,
@@ -977,6 +991,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
                     position_embeddings=position_embeddings,
                 )
 
+            # 将上一层的输出取出来，存到 hidden_states 中，进而传递给下一层。
             hidden_states = layer_outputs[0]
 
             if use_cache:
@@ -985,6 +1000,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
 
+        # 归一化：对最后一层输出的 hidden_states 进行归一化。
         hidden_states = self.norm(hidden_states)
 
         # add hidden states from the last decoder layer
@@ -995,6 +1011,7 @@ class Qwen2Model(Qwen2PreTrainedModel):
         if use_cache:
             next_cache = next_decoder_cache.to_legacy_cache() if use_legacy_cache else next_decoder_cache
 
+        # 返回结果：根据 return_dict 返回结果。
         if not return_dict:
             return tuple(v for v in [hidden_states, next_cache, all_hidden_states, all_self_attns] if v is not None)
         return BaseModelOutputWithPast(
