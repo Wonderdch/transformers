@@ -1,3 +1,4 @@
+import json
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
@@ -25,6 +26,9 @@ class InternLM2Chat(BaseModel):
         self.tokenizer = AutoTokenizer.from_pretrained(self.path, trust_remote_code=True)
         self.model = AutoModelForCausalLM.from_pretrained(self.path, torch_dtype=torch.float16,
                                                           trust_remote_code=True).cuda().eval()
+
+        # print the maximun context length
+        print('Maximum context length: ', self.model.config.max_position_embeddings)
         print('================ Model loaded ================')
 
     def chat(self, prompt: str, history: List[dict], meta_instruction: str = '') -> str:

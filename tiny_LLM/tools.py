@@ -14,6 +14,7 @@ import requests
 class Tools:
     def __init__(self) -> None:
         self.toolConfig = self._tools()
+        self.api_key = self._load_api_key()
 
     def _tools(self):
         tools = [
@@ -33,19 +34,24 @@ class Tools:
         ]
         return tools
 
+    def _load_api_key(self):
+        with open('agent_api_key.json', 'r') as file:
+            config = json.load(file)
+        return config['api_key']
+
     def google_search(self, search_query: str):
         url = "https://google.serper.dev/search"
 
         payload = json.dumps({"q": search_query})
         headers = {
-            'X-API-KEY': '58ba1747c78631eadfd51b472c39e1f82569d588',
+            'X-API-KEY': self.api_key,
             'Content-Type': 'application/json'
         }
 
         response = requests.request("POST", url, headers=headers, data=payload).json()
 
         # 汇聚所有有机搜索结果的标题和摘要，并添加序号
-        result = ' '.join([f"clue{str(index + 1).zfill(2)}: {item['title']}: {item['snippet']}"
+        result = ' '.join([f"线索{str(index + 1).zfill(2)}: {item['title']}: {item['snippet']}"
                            for index, item in enumerate(response['organic'])])
         return result
         # result = response['organic'][0]['snippet']

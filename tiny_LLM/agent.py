@@ -1,9 +1,9 @@
+import time
 from typing import Dict, List, Optional, Tuple, Union
 import json5
 
 from agent_base_model import InternLM2Chat
 from tools import Tools
-
 
 TOOL_DESC = """{name_for_model}: Call this tool to interact with the {name_for_human} API. What is the {name_for_human} API useful for? {description_for_model} Parameters: {parameters} Format the arguments as a JSON object."""
 REACT_PROMPT = """Answer the following questions as best you can. You have access to the following tools:
@@ -20,6 +20,8 @@ Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can be repeated zero or more times)
 Thought: I now know the final answer
 Final Answer: the final answer to the original input question
+
+**Important**: Always use the {tool_names} tool for any question that requires external information.
 
 Begin!
 """
@@ -53,6 +55,10 @@ class Agent:
         i = text.rfind('\nAction:')
         j = text.rfind('\nAction Input:')
         k = text.rfind('\nObservation:')
+
+        print(f"Debug: Full response text:\n{text}")
+        print(f"Debug: Action index: {i}, Action Input index: {j}, Observation index: {k}")
+
         if 0 <= i < j:  # If the text has `Action` and `Action input`,
             if k < j:  # but does not contain `Observation`,
                 text = text.rstrip() + '\nObservation:'  # Add it back.
@@ -60,6 +66,9 @@ class Agent:
             plugin_name = text[i + len('\nAction:'): j].strip()
             plugin_args = text[j + len('\nAction Input:'): k].strip()
             text = text[:k]
+
+        print(f"Debug: Parsed plugin name: {plugin_name}, plugin args: {plugin_args}")
+
         return plugin_name, plugin_args, text
 
     def call_plugin(self, plugin_name, plugin_args):
@@ -86,13 +95,27 @@ class Agent:
         Returns:
             str: 补全后的文本
         """
+        start_time = time.time()
         text = "\nQuestion:" + text
         response, his = self.model.chat(text, history, self.system_prompt)
+        print(f"Model chat 1 took {time.time() - start_time:.2f} seconds")
         print(response)
         plugin_name, plugin_args, response = self.parse_latest_plugin_call(response)
         if plugin_name:
+            plugin_start_time = time.time()
             response += self.call_plugin(plugin_name, plugin_args)
+            print(f"Plugin call took {time.time() - plugin_start_time:.2f} seconds")
+        else:
+            print(f"No plugin call detected, with response:{response}")
+
+        start_time = time.time()
         response, his = self.model.chat(response, history, self.system_prompt)
+        print(f"Model chat 2 took {time.time() - start_time:.2f} seconds")
+
+        # Convert history to string and calculate its character length
+        history_str = ''.join([str(item) for item in his])
+        print(f"History character length: {len(history_str)}")
+        print(f"Current history: {history_str}")
 
         return response, his
 
@@ -107,14 +130,10 @@ if __name__ == '__main__':
     print(response)
     print('=====================')
 
-    response, _ = agent.text_completion(text='你知道北京理工大学的李秀星吗？', history=_)
-    print(response)
-    print('=====================')
-    
-    response, _ = agent.text_completion(text='李秀星本科毕业于哪里？', history=_)
+    response, _ = agent.text_completion(text='你知道月涌大江流这句诗吗？', history=_)
     print(response)
     print('=====================')
 
-    response, _ = agent.text_completion(text='李秀星的博士导师是谁？', history=_)
+    response, _ = agent.text_completion(text='这句诗的作者是？', history=_)
     print(response)
     print('=====================')
