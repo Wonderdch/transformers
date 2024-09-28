@@ -167,3 +167,9 @@ tags
 
 # ruff
 .ruff_cache
+
+# tiny-LLM
+/jinaai/*
+/Shanghai_AI_Laboratory/*
+/Qwen_local/*
+/tiny_LLM/agent_api_key.json

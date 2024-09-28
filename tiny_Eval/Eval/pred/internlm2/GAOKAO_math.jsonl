@@ -1,0 +1,10 @@
+{"pred": "D", "answers": "A", "all_classes": null, "length": null}
+{"pred": "A", "answers": "C", "all_classes": null, "length": null}
+{"pred": "∵b̄ = (2, x)，∴b̄ - 4ā = (2, x) - 4(0, 1) = (2, x - 4)，∵b̄ ⊥ (b̄ - 4ā)，∴2(x - 4) = 0，∴x = 4， 故选 D.", "answers": "D", "all_classes": null, "length": null}
+{"pred": "∵cos(α + β) = m, tanαtan β = 2，∴sinαcosβ + cosαsinβ = m，sinαcosβ - cosαsinβ = 2sinαcosα，∴2sinαcosα = m，∴cos(α - β) = cosαcosβ + sinαsinβ = cosαcosβ - 2sinαcosα = m - 2m = -m. 故选 A.", "answers": "A", "all_classes": null, "length": null}
+{"pred": "C", "answers": "B", "all_classes": null, "length": null}
+{"pred": "C", "answers": "B", "all_classes": null, "length": null}
+{"pred": "C", "answers": "C", "all_classes": null, "length": null}
+{"pred": "C 当x=3时，f(3)=f(3-1)+f(3-2)， 即f(3)=f(2)+f(1)， ∵f(x) > f(x-1) + f(x-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-1) + f(3-2)， ∴f(3) > f(2) + f(1)， ∴f(3) > f(3-", "answers": "B", "all_classes": null, "length": null}
+{"pred": "C", "answers": "BC", "all_classes": null, "length": null}
+{"pred": "D", "answers": "ACD", "all_classes": null, "length": null}
